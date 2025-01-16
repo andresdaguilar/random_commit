@@ -1,0 +1,34 @@
+name: Random Commit Automation
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Runs every 6 hours
+  workflow_dispatch:  # Allow manual execution from the Actions UI
+
+jobs:
+  random-commit:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Python
+      - name: Set Up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      # Step 3: Run the Python script
+      - name: Run Random Commit Script
+        run: |
+          python random_commit.py
+
+      # Step 4: Push changes back to the repository
+      - name: Push Changes
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "action@github.com"
+          git add .
+          git commit -m "Automated random commit"
+          git push
