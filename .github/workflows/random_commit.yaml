@@ -17,13 +17,17 @@ jobs:
       - name: Set Up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.x'  # Use Python 3.x
 
-      # Step 3: Run the Python script
+      # Step 3: Check Python Version
+      - name: Display Python Version
+        run: python --version
+
+      # Step 4: Run the Python script
       - name: Run Random Commit Script
         run: python random_commit.py
 
-      # Step 4: Push changes back to the repository
+      # Step 5: Push Changes Back to Repository
       - name: Push Changes
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
