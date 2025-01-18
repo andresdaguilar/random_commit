@@ -1,8 +1,8 @@
 import random
+import datetime
 
 # Configuration
-file_to_edit = "random_text_file.txt"  # Relative path to the file to be edited
-commit_message = "Automated random update"
+file_to_edit = "random_text_file.txt"  # File to edit
 lines_to_add = [
     "This is a random line.",
     "Another random line added!",
@@ -14,7 +14,8 @@ lines_to_add = [
 def add_random_line_to_file():
     """Adds a random line to the specified file."""
     with open(file_to_edit, "a") as file:
-        file.write(random.choice(lines_to_add) + "\n")
+        line = random.choice(lines_to_add)
+        file.write(f"{datetime.datetime.now()}: {line}\n")
     print(f"Random line added to {file_to_edit}")
 
 if __name__ == "__main__":
