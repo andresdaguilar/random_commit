@@ -2,13 +2,8 @@ name: Random Commit Bot
 
 on:
   schedule:
-    # Run the workflow 4 times a day to decide if it should make a commit
-    - cron: '0 0 * * *'   # Midnight UTC
-    - cron: '0 6 * * *'   # 6 AM UTC
-    - cron: '0 12 * * *'  # Noon UTC
-    - cron: '0 18 * * *'  # 6 PM UTC
-
-  workflow_dispatch:  # Allow manual execution if needed
+    - cron: '0 */6 * * *'  # Run every 6 hours
+  workflow_dispatch:  # Allow manual execution
 
 jobs:
   random-commit:
@@ -26,30 +21,7 @@ jobs:
 
       # Step 3: Run the Python script
       - name: Run Random Commit Script
-        env:
-          MIN_COMMITS: "1"  # Ensure at least 1 commit per day
-          MAX_COMMITS: "4"  # Allow up to 4 commits per day
-        run: |
-          import random
-          import os
-
-          # Decide whether to commit
-          min_commits = int(os.getenv("MIN_COMMITS", 1))
-          max_commits = int(os.getenv("MAX_COMMITS", 4))
-          daily_commits = random.randint(min_commits, max_commits)
-
-          # Count today's commits
-          import subprocess
-          result = subprocess.run(
-              ['git', 'log', '--since=midnight', '--oneline'], stdout=subprocess.PIPE
-          )
-          commit_count = len(result.stdout.decode().strip().split("\n"))
-
-          if commit_count < daily_commits:
-              print(f"Today's commits: {commit_count}/{daily_commits}. Making a commit.")
-              os.system("python random_commit.py")
-          else:
-              print(f"Today's commits: {commit_count}/{daily_commits}. No commit needed.")
+        run: python random_commit.py
 
       # Step 4: Push changes back to the repository
       - name: Push Changes
@@ -58,6 +30,7 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "action@github.com"
+          git remote set-url origin https://x-access-token:${TOKEN}@github.com/andresdaguilar/random_commit.git
           git add .
           git commit -m "Automated random commit"
-          git push
+          git push origin HEAD
