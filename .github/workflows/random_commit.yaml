@@ -12,7 +12,6 @@ on:
 jobs:
   random-commit:
     runs-on: ubuntu-latest
-    if: github.event.schedule # Ensures this job only runs on a schedule
     steps:
       # Step 1: Check out the repository
       - name: Checkout Repository
