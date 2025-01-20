@@ -38,8 +38,11 @@ jobs:
           git config --global user.email "action@github.com"
           git remote set-url origin https://x-access-token:${TOKEN}@github.com/andresdaguilar/random_commit.git
           git checkout -B dev
+          git stash  # Stash local changes
+          git pull origin dev --rebase  # Pull the latest changes from the remote dev branch
+          git stash pop  # Reapply stashed changes
           git add .
-          git commit -m "Automated random commit"
+          git commit -m "Automated random commit" || echo "No changes to commit"
           git push origin dev
 
   create-pull-request:
