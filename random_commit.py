@@ -12,7 +12,7 @@ lines_to_add = [
 ]
 
 # Define the maximum commits per day
-MAX_COMMITS = 8
+MAX_COMMITS = 15
 
 def count_today_commits():
     """Count the number of commits made today."""
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     # Decide if another commit should be made
     if today_commits < MAX_COMMITS:
         # Ensure at least 1 commit per day by running once unconditionally
-        if today_commits == 0 or random.choice([True, False]):
+        if today_commits < 2 0 or random.random() < 0.75:
             add_random_line_to_file()
         else:
             print("Skipping commit this time.")
