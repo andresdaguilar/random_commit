@@ -30,9 +30,11 @@ jobs:
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "action@github.com"
-          git remote set-url origin https://x-access-token:${TOKEN}@github.com/andresdaguilar/random_commit.git
-          git add .
-          git commit -m "Automated random commit"
-          git push origin HEAD
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "action@github.com"
+        git remote set-url origin https://x-access-token:${TOKEN}@github.com/andresdaguilar/random_commit.git
+        git checkout -B dev
+        git pull origin dev --rebase  # Pull the latest changes from the remote dev branch
+        git add .
+        git commit -m "Automated random commit" || echo "No changes to commit"
+        git push origin dev
