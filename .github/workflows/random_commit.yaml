@@ -35,8 +35,12 @@ jobs:
           git remote set-url origin https://x-access-token:${TOKEN}@github.com/andresdaguilar/random_commit.git
           git checkout -B dev
           git stash  # Stash local changes
-          git pull origin dev --rebase  # Pull the latest changes from the remote dev branch
-          git stash pop  # Reapply stashed changes
+          git pull origin dev --rebase || {  # Pull the latest changes and rebase
+            echo "Conflict detected. Resolving automatically.";
+            git rebase --abort;  # Abort the rebase
+            git pull origin dev --strategy-option theirs;  # Resolve using "theirs" strategy
+          }
+          git stash pop || echo "No stashed changes to apply"  # Reapply stashed changes if any
           git add .
           git commit -m "Automated random commit" || echo "No changes to commit"
           git push origin dev
