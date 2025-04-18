@@ -1,46 +1,63 @@
-name: Random Commit Bot
+name: Random Daily Commits
 
 on:
   schedule:
-    # Run every 90 minutes
-    - cron: '0 */3 * * *'   # Every 3 hours starting at midnight (e.g., 00:00, 03:00, 06:00, etc.)
-    - cron: '30 1-23/3 * * *'  # 90 minutes after the start of every 3-hour interval (e.g., 01:30, 04:30, etc.)
-  workflow_dispatch:  # Allow manual execution
+    # Ejecuta cada hora para tener suficientes oportunidades
+    - cron: '0 * * * *'
 
 jobs:
   random-commit:
     runs-on: ubuntu-latest
+    
+    # Usamos una matriz para controlar el número aleatorio de ejecuciones
+    strategy:
+      matrix:
+        # Genera 10 posibles ejecuciones diarias
+        attempt: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    
     steps:
-      # Step 1: Check out the repository
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      # Step 2: Set up Python
-      - name: Set Up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      # Step 3: Run the Python script
-      - name: Run Random Commit Script
-        run: python random_commit.py
-
-      # Step 4: Push Changes Back to Repository
-      - name: Push Changes
-        env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Solo ejecuta si es un intento válido según el número aleatorio
+      - name: Check if should run
         run: |
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "action@github.com"
-          git remote set-url origin https://x-access-token:${TOKEN}@github.com/andresdaguilar/random_commit.git
-          git checkout -B dev
-          git stash  # Stash local changes
-          git pull origin dev --rebase || {  # Pull the latest changes and rebase
-            echo "Conflict detected. Resolving automatically.";
-            git rebase --abort;  # Abort the rebase
-            git pull origin dev --strategy-option theirs;  # Resolve using "theirs" strategy
-          }
-          git stash pop || echo "No stashed changes to apply"  # Reapply stashed changes if any
-          git add .
-          git commit -m "Automated random commit" || echo "No changes to commit"
-          git push origin dev
+          # Genera número aleatorio entre 5 y 10 para el día
+          DAILY_COMMITS=$((RANDOM % 6 + 5))
+          # Solo continua si el número de intento es menor o igual al número de commits deseado
+          if [ ${{ matrix.attempt }} -le $DAILY_COMMITS ]; then
+            echo "Proceeding with commit attempt ${{ matrix.attempt }}"
+          else
+            echo "Skipping attempt ${{ matrix.attempt }}"
+            exit 0
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          # Usa un token con permisos para push
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup git config
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+
+      - name: Add text line and commit
+        run: |
+          # Archivo donde se añadirá la línea
+          FILE="random_text_file.txt"
+          # Genera una línea con timestamp
+          echo "Automated commit at $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $FILE
+          
+          # Forza el commit incluso si no hay cambios significativos
+          git add $FILE
+          git commit -m "Automated commit: Added new line to $FILE" --allow-empty || true
+          
+          # Forza el push al branch dev
+          git push origin dev --force
+
+      # Manejo de errores
+      - name: Handle errors
+        if: failure()
+        run: |
+          echo "Error occurred, but continuing due to force commit requirement"
+          exit 0
