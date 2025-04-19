@@ -2,7 +2,7 @@ name: Random Daily Commits
 
 on:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '0 */4 * * *'  # Run every 4 hours (6 times/day)
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
@@ -12,25 +12,11 @@ jobs:
       group: random-commit-${{ github.ref }}
       cancel-in-progress: false
 
-    strategy:
-      matrix:
-        attempt: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-
     steps:
-      - name: Check if should run
-        run: |
-          DAILY_COMMITS=$((RANDOM % 6 + 5))
-          if [ ${{ matrix.attempt }} -le $DAILY_COMMITS ]; then
-            echo "Proceeding with commit attempt ${{ matrix.attempt }}"
-          else
-            echo "Skipping attempt ${{ matrix.attempt }}"
-            exit 0
-          fi
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: master  # Changed to master branch
+          ref: master  # Commit to master branch
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup git config
@@ -38,28 +24,35 @@ jobs:
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
 
-      - name: Add text line and commit
+      - name: Generate random commits
         run: |
+          # Generate random number of commits (5-10) for the day
+          DAILY_COMMITS=$((RANDOM % 6 + 5))
+          echo "Generating $DAILY_COMMITS commits"
+
           FILE="random_text_file.txt"
-          echo "Automated commit at $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $FILE
           
-          # Stage and commit changes before pulling
-          git add $FILE
-          git commit -m "Automated commit: Added new line to $FILE" --allow-empty || true
-          
-          # Pull with rebase to sync with remote
-          git pull origin master --rebase || {
-            echo "Pull failed, resetting and retrying..."
-            git reset --hard origin/master
-            git pull origin master
-          }
-          
-          # Push with retry logic
-          for i in 1 2 3; do
-            git push origin master && break
-            echo "Push failed, retrying ($i/3)..."
-            sleep $((2 ** i))
-            git pull origin master --rebase || git reset --hard origin/master
+          for ((i=1; i<=DAILY_COMMITS; i++)); do
+            echo "Automated commit $i at $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $FILE
+            
+            # Stage and commit
+            git add $FILE
+            git commit -m "Automated commit $i: Added new line to $FILE" --allow-empty || true
+            
+            # Pull to sync with remote
+            git pull origin master --rebase || {
+              echo "Pull failed, resetting and retrying..."
+              git reset --hard origin/master
+              git pull origin master
+            }
+            
+            # Push with retry
+            for j in 1 2 3; do
+              git push origin master && break
+              echo "Push failed, retrying ($j/3)..."
+              sleep $((2 ** j))
+              git pull origin master --rebase || git reset --hard origin/master
+            done
           done
 
       - name: Handle errors
