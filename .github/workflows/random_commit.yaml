@@ -3,7 +3,7 @@ name: Random Daily Commits
 on:
   schedule:
     - cron: '0 * * * *'
-  workflow_dispatch:  # Added for manual triggering if needed
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   random-commit:
@@ -30,7 +30,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: dev
+          ref: master  # Changed to master branch
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup git config
@@ -48,18 +48,18 @@ jobs:
           git commit -m "Automated commit: Added new line to $FILE" --allow-empty || true
           
           # Pull with rebase to sync with remote
-          git pull origin dev --rebase || {
+          git pull origin master --rebase || {
             echo "Pull failed, resetting and retrying..."
-            git reset --hard origin/dev
-            git pull origin dev
+            git reset --hard origin/master
+            git pull origin master
           }
           
           # Push with retry logic
           for i in 1 2 3; do
-            git push origin dev && break
+            git push origin master && break
             echo "Push failed, retrying ($i/3)..."
             sleep $((2 ** i))
-            git pull origin dev --rebase || git reset --hard origin/dev
+            git pull origin master --rebase || git reset --hard origin/master
           done
 
       - name: Handle errors
