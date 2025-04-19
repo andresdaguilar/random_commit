@@ -2,26 +2,25 @@ name: Random Daily Commits
 
 on:
   schedule:
-    # Ejecuta cada hora para tener suficientes oportunidades
     - cron: '0 * * * *'
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   random-commit:
     runs-on: ubuntu-latest
-    
-    # Usamos una matriz para controlar el número aleatorio de ejecuciones
+    # Prevent multiple runs from executing concurrently
+    concurrency:
+      group: random-commit-${{ github.ref }}
+      cancel-in-progress: false
+
     strategy:
       matrix:
-        # Genera 10 posibles ejecuciones diarias
         attempt: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    
+
     steps:
-      # Solo ejecuta si es un intento válido según el número aleatorio
       - name: Check if should run
         run: |
-          # Genera número aleatorio entre 5 y 10 para el día
           DAILY_COMMITS=$((RANDOM % 6 + 5))
-          # Solo continua si el número de intento es menor o igual al número de commits deseado
           if [ ${{ matrix.attempt }} -le $DAILY_COMMITS ]; then
             echo "Proceeding with commit attempt ${{ matrix.attempt }}"
           else
@@ -33,29 +32,32 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: dev
-          # Usa un token con permisos para push
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup git config
         run: |
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
 
       - name: Add text line and commit
         run: |
-          # Archivo donde se añadirá la línea
           FILE="random_text_file.txt"
-          # Genera una línea con timestamp
           echo "Automated commit at $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $FILE
           
-          # Forza el commit incluso si no hay cambios significativos
+          # Pull latest changes to avoid conflicts
+          git pull origin dev --rebase
+          
           git add $FILE
           git commit -m "Automated commit: Added new line to $FILE" --allow-empty || true
           
-          # Forza el push al branch dev
-          git push origin dev --force
+          # Retry push with exponential backoff
+          for i in 1 2 3; do
+            git push origin dev && break
+            echo "Push failed, retrying ($i/3)..."
+            sleep $((2 ** i))
+            git pull origin dev --rebase
+          done
 
-      # Manejo de errores
       - name: Handle errors
         if: failure()
         run: |
