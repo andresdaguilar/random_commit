@@ -3,12 +3,11 @@ name: Random Daily Commits
 on:
   schedule:
     - cron: '0 * * * *'
-  workflow_dispatch:  # Allows manual triggering
+  workflow_dispatch:  # Added for manual triggering if needed
 
 jobs:
   random-commit:
     runs-on: ubuntu-latest
-    # Prevent multiple runs from executing concurrently
     concurrency:
       group: random-commit-${{ github.ref }}
       cancel-in-progress: false
@@ -44,18 +43,23 @@ jobs:
           FILE="random_text_file.txt"
           echo "Automated commit at $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $FILE
           
-          # Pull latest changes to avoid conflicts
-          git pull origin dev --rebase
-          
+          # Stage and commit changes before pulling
           git add $FILE
           git commit -m "Automated commit: Added new line to $FILE" --allow-empty || true
           
-          # Retry push with exponential backoff
+          # Pull with rebase to sync with remote
+          git pull origin dev --rebase || {
+            echo "Pull failed, resetting and retrying..."
+            git reset --hard origin/dev
+            git pull origin dev
+          }
+          
+          # Push with retry logic
           for i in 1 2 3; do
             git push origin dev && break
             echo "Push failed, retrying ($i/3)..."
             sleep $((2 ** i))
-            git pull origin dev --rebase
+            git pull origin dev --rebase || git reset --hard origin/dev
           done
 
       - name: Handle errors
