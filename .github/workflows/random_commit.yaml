@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: master  # Commit to master branch
+          ref: main  # Commit to main branch
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup git config
@@ -40,18 +40,18 @@ jobs:
             git commit -m "Automated commit $i: Added new line to $FILE" --allow-empty || true
             
             # Pull to sync with remote
-            git pull origin master --rebase || {
+            git pull origin main --rebase || {
               echo "Pull failed, resetting and retrying..."
-              git reset --hard origin/master
-              git pull origin master
+              git reset --hard origin/main
+              git pull origin main
             }
             
             # Push with retry
             for j in 1 2 3; do
-              git push origin master && break
+              git push origin main && break
               echo "Push failed, retrying ($j/3)..."
               sleep $((2 ** j))
-              git pull origin master --rebase || git reset --hard origin/master
+              git pull origin main --rebase || git reset --hard origin/main
             done
           done
 
