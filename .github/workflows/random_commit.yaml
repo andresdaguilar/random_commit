@@ -2,21 +2,31 @@ name: Random Daily Commits
 
 on:
   schedule:
-    - cron: '0 */4 * * *'  # Run every 4 hours (6 times/day)
+    - cron: '0 0 * * *'  # Run once daily at midnight UTC
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
   random-commit:
     runs-on: ubuntu-latest
     concurrency:
-      group: random-commit-${{ github.ref }}
-      cancel-in-progress: false
+      group: random-commit  # Simplified group, no branch ref
+      cancel-in-progress: true  # Cancel any in-progress runs
 
     steps:
+      - name: Verify schedule
+        run: |
+          # Only proceed if triggered by the daily schedule or explicitly allowed
+          if [[ "${{ github.event_name }}" != "schedule" || "${{ github.event.schedule }}" == "0 0 * * *" ]]; then
+            echo "Proceeding with commit job"
+          else
+            echo "Skipping: Run triggered by an unexpected schedule"
+            exit 0
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: main  # Commit to main branch
+          ref: main  # Target the main branch
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup git config
